@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="QZen — Scan the World You Create. Premium QR Code Generator for URLs, text, files, images, and more.">
+<meta property="og:title" content="QZen — Scan the World You Create">
+<meta property="og:description" content="Generate QR codes for anything. URLs, text, files, vCards, WiFi and more.">
+<title>QZen — Scan the World You Create</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23FF6B00'/><rect x='18' y='18' width='28' height='28' rx='4' fill='none' stroke='%23FFF' stroke-width='7'/><rect x='54' y='18' width='28' height='28' rx='4' fill='none' stroke='%23FFF' stroke-width='7'/><rect x='18' y='54' width='28' height='28' rx='4' fill='none' stroke='%23FFF' stroke-width='7'/><rect x='54' y='54' width='28' height='28' rx='4' fill='%23FFF'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --o1: #FF6B00; --o2: #FFAA00; --o3: #FFD700;
+  --cream: #FFF8EE; --char: #1A1A1A; --deep: #0D0804;
+  --gb: rgba(255,107,0,0.05); --gbd: rgba(255,170,0,0.15);
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--deep);
+  color: var(--cream);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4 { font-family: 'Playfair Display', serif; }
+
+/* BG layers */
+#bg-base {
+  position: fixed; inset: 0; z-index: -3;
+  background: linear-gradient(135deg, #0D0804 0%, #1A1A1A 55%, #0E0704 100%);
+}
+.orb {
+  position: fixed; border-radius: 50%;
+  filter: blur(90px); pointer-events: none; z-index: -2;
+}
+.orb1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(255,107,0,0.18) 0%, transparent 70%);
+  top: -200px; left: -200px;
+  animation: orbFloat1 22s ease-in-out infinite;
+}
+.orb2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(255,170,0,0.12) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  animation: orbFloat2 18s ease-in-out infinite;
+}
+.orb3 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%);
+  top: 45%; left: 55%;
+  animation: orbFloat3 25s ease-in-out infinite;
+}
+@keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 40%{transform:translate(40px,-40px)} 70%{transform:translate(-20px,25px)} }
+@keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 35%{transform:translate(-35px,30px)} 70%{transform:translate(25px,-20px)} }
+@keyframes orbFloat3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,-40px)} }
+.geo {
+  position: fixed; inset: 0; z-index: -1; opacity: 0.025;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,170,0,1) 0, rgba(255,170,0,1) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(90deg, rgba(255,170,0,1) 0, rgba(255,170,0,1) 1px, transparent 1px, transparent 48px);
+}
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(13,8,4,0.65);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,170,0,0.1);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--o1), var(--o2));
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-icon svg { width: 18px; height: 18px; fill: #0D0804; }
+.nav-brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 700;
+  background: linear-gradient(135deg, var(--o1), var(--o3));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.nav-tag {
+  font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,248,238,0.3); font-weight: 400;
+}
+
+/* GLASS CARD */
+.card {
+  background: rgba(255,107,0,0.04);
+  border: 1px solid rgba(255,170,0,0.14);
+  border-radius: 18px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 6px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,170,0,0.08);
+  transition: border-color 0.35s, box-shadow 0.35s;
+}
+.card:hover {
+  border-color: rgba(255,170,0,0.26);
+  box-shadow: 0 8px 56px rgba(255,107,0,0.12), inset 0 1px 0 rgba(255,170,0,0.12);
+}
+
+/* HERO */
+.hero { text-align: center; padding: 90px 24px 70px; position: relative; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--o2); font-weight: 500;
+  border: 1px solid rgba(255,170,0,0.25); border-radius: 100px;
+  padding: 5px 16px; margin-bottom: 22px;
+  animation: fadeUp 0.7s ease both;
+}
+.hero-title {
+  font-size: clamp(2.8rem, 7vw, 5rem);
+  line-height: 1.08; letter-spacing: -1.5px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.7s 0.1s ease both;
+}
+.grad-text {
+  background: linear-gradient(135deg, var(--o1) 0%, var(--o2) 50%, var(--o3) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero-sub {
+  font-size: 18px; color: rgba(255,248,238,0.5); font-weight: 300;
+  letter-spacing: 0.5px; margin-bottom: 36px;
+  animation: fadeUp 0.7s 0.2s ease both;
+}
+.hero-deco {
+  position: absolute; pointer-events: none;
+  border-radius: 6px;
+  border: 1px solid rgba(255,170,0,0.18);
+}
+.hero-deco1 { width: 56px; height: 56px; top: 24px; right: 10%; transform: rotate(18deg); animation: hd 9s ease-in-out infinite; }
+.hero-deco2 { width: 36px; height: 36px; border-radius: 50%; top: 42%; left: 6%; border-color: rgba(255,107,0,0.18); animation: hd 12s -4s ease-in-out infinite; }
+.hero-deco3 { width: 24px; height: 24px; bottom: 15%; right: 14%; transform: rotate(45deg); animation: hd 10s -7s ease-in-out infinite; }
+@keyframes hd { 0%,100%{transform:translateY(0) rotate(18deg)} 50%{transform:translateY(-12px) rotate(22deg)} }
+
+/* BUTTONS */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 32px; border-radius: 11px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  background: linear-gradient(135deg, var(--o1), var(--o2));
+  color: #0D0804; position: relative; overflow: hidden;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.btn-primary::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--o2), var(--o3));
+  opacity: 0; transition: opacity 0.3s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,107,0,0.45); }
+.btn-primary:hover::after { opacity: 1; }
+.btn-primary span, .btn-primary svg { position: relative; z-index: 1; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-sm { padding: 9px 18px; font-size: 13px; border-radius: 9px; }
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 16px; border-radius: 9px; border: 1px solid rgba(255,170,0,0.25);
+  background: rgba(255,170,0,0.07); color: var(--o2);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all 0.25s;
+}
+.btn-ghost:hover { background: rgba(255,170,0,0.15); border-color: rgba(255,170,0,0.45); transform: translateY(-1px); }
+
+/* TABS */
+.tab-bar {
+  display: flex; gap: 3px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,170,0,0.1);
+  border-radius: 13px; padding: 4px;
+}
+.tab-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 10px; border-radius: 10px; border: none;
+  background: transparent; color: rgba(255,248,238,0.42);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.25s; white-space: nowrap;
+}
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(255,107,0,0.28), rgba(255,170,0,0.18));
+  color: var(--o2); border: 1px solid rgba(255,170,0,0.28);
+}
+.tab-btn:hover:not(.active) { background: rgba(255,255,255,0.04); color: rgba(255,248,238,0.75); }
+.tab-icon { font-size: 14px; }
+
+/* INPUTS */
+.field {
+  width: 100%; padding: 12px 15px; border-radius: 10px;
+  border: 1px solid rgba(255,170,0,0.2);
+  background: rgba(0,0,0,0.32); color: var(--cream);
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  outline: none; transition: border-color 0.25s, box-shadow 0.25s;
+  resize: vertical;
+}
+.field:focus { border-color: rgba(255,107,0,0.55); box-shadow: 0 0 0 3px rgba(255,107,0,0.12); }
+.field::placeholder { color: rgba(255,248,238,0.28); }
+.field option { background: #1A1A1A; }
+.field-label { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: rgba(255,248,238,0.4); font-weight: 500; margin-bottom: 7px; display: block; }
+
+/* DROPZONE */
+.dropzone {
+  border: 2px dashed rgba(255,170,0,0.25);
+  border-radius: 14px; padding: 36px 20px; text-align: center;
+  cursor: pointer; transition: all 0.3s; background: rgba(255,107,0,0.025);
+  position: relative;
+}
+.dropzone.over, .dropzone:hover { border-color: rgba(255,107,0,0.6); background: rgba(255,107,0,0.07); }
+.dropzone-icon { font-size: 34px; margin-bottom: 10px; }
+.dropzone-main { font-size: 14px; color: rgba(255,248,238,0.65); margin-bottom: 4px; }
+.dropzone-sub { font-size: 12px; color: rgba(255,248,238,0.3); }
+.dropzone-file { color: var(--o2); font-weight: 500; font-size: 14px; }
+
+/* QR DISPLAY */
+.qr-wrapper {
+  display: flex; flex-direction: column; align-items: center;
+}
+.qr-box {
+  background: #fff; border-radius: 14px; padding: 14px;
+  animation: qrGlow 2.4s ease-in-out infinite alternate, qrPop 0.45s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes qrGlow {
+  from { box-shadow: 0 0 20px rgba(255,107,0,0.25), 0 0 50px rgba(255,107,0,0.1); }
+  to { box-shadow: 0 0 45px rgba(255,107,0,0.55), 0 0 90px rgba(255,170,0,0.3); }
+}
+@keyframes qrPop {
+  from { opacity: 0; transform: scale(0.78) rotate(-4deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.qr-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 260px; gap: 12px;
+  border: 2px dashed rgba(255,170,0,0.12); border-radius: 14px;
+  color: rgba(255,248,238,0.2);
+}
+.qr-empty-icon { width: 72px; height: 72px; opacity: 0.2; }
+
+/* CUSTOMIZER */
+.color-row { display: flex; align-items: center; gap: 8px; }
+input[type="color"] {
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255,170,0,0.3); padding: 3px; background: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 5px; }
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px;
+  background: rgba(255,170,0,0.2); outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 17px; height: 17px;
+  border-radius: 50%; background: var(--o1); cursor: pointer;
+  box-shadow: 0 0 8px rgba(255,107,0,0.6);
+}
+
+/* HISTORY */
+.history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 12px; }
+.hist-item {
+  background: rgba(255,107,0,0.04); border: 1px solid rgba(255,170,0,0.12);
+  border-radius: 12px; padding: 10px; cursor: pointer; transition: all 0.28s; text-align: center;
+}
+.hist-item:hover {
+  border-color: rgba(255,170,0,0.4); transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(255,107,0,0.2);
+}
+.hist-img { width: 100%; aspect-ratio: 1/1; object-fit: contain; border-radius: 6px; }
+.hist-label { font-size: 10px; color: rgba(255,248,238,0.38); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-type { font-size: 10px; color: rgba(255,170,0,0.55); margin-top: 2px; }
+
+/* DIVIDER */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,170,0,0.22), transparent); margin: 18px 0; }
+
+/* SECTION LABEL */
+.slabel { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--o2); font-weight: 600; }
+
+/* TOAST */
+.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast {
+  padding: 13px 18px; border-radius: 12px; font-size: 13px;
+  backdrop-filter: blur(20px); pointer-events: all;
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: 310px; cursor: pointer;
+}
+.toast-success { background: rgba(10,30,10,0.92); border: 1px solid rgba(80,200,80,0.35); color: #90ee90; }
+.toast-error { background: rgba(40,8,8,0.92); border: 1px solid rgba(220,80,80,0.35); color: #ffb3b3; }
+.toast-info { background: rgba(15,20,35,0.92); border: 1px solid rgba(255,170,0,0.35); color: var(--o2); }
+@keyframes toastIn { from{opacity:0;transform:translateX(80px)} to{opacity:1;transform:translateX(0)} }
+
+/* LOADER SPINNER */
+.spin { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,170,0,0.2); border-top-color: var(--o2); animation: doSpin 0.75s linear infinite; }
+@keyframes doSpin { to { transform: rotate(360deg); } }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+.fu { animation: fadeUp 0.65s ease both; }
+.fu1 { animation-delay: 0.1s; }
+.fu2 { animation-delay: 0.2s; }
+.fu3 { animation-delay: 0.3s; }
+
+/* GRID */
+.gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 750px) { .gen-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tab-btn span.tab-label { display: none; } .hero-title { letter-spacing: -1px; } }
+
+/* FOOTER */
+footer {
+  border-top: 1px solid rgba(255,170,0,0.1);
+  background: rgba(13,8,4,0.7); padding: 36px 28px; text-align: center;
+}
+.footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin: 14px 0; }
+.footer-link {
+  font-size: 13px; color: rgba(255,170,0,0.45); text-decoration: none; transition: color 0.2s;
+}
+.footer-link:hover { color: var(--o2); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255,107,0,0.35); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="bg-base"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div class="geo"></div>
+<div id="qr-scratch" style="position:absolute;left:-9999px;top:-9999px;width:512px;height:512px;overflow:hidden;"></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ─ QR Generator ─────────────────────────────────────────── */
+function genQR(text, opts) {
+  return new Promise((resolve, reject) => {
+    const el = document.getElementById('qr-scratch');
+    el.innerHTML = '';
+    try {
+      new QRCode(el, {
+        text: text || ' ',
+        width: opts.size || 256,
+        height: opts.size || 256,
+        colorDark: opts.dark || '#000000',
+        colorLight: opts.light || '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+      setTimeout(() => {
+        const cv = el.querySelector('canvas');
+        if (!cv) { reject(new Error('No canvas')); return; }
+        if (opts.logo) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+              const ctx = cv.getContext('2d');
+              const s = cv.width, ls = s * 0.22;
+              const x = (s - ls) / 2, y = (s - ls) / 2;
+              ctx.fillStyle = opts.light || '#ffffff';
+              ctx.fillRect(x - 5, y - 5, ls + 10, ls + 10);
+              ctx.drawImage(img, x, y, ls, ls);
+              resolve(cv.toDataURL('image/png'));
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(opts.logo);
+        } else {
+          resolve(cv.toDataURL('image/png'));
+        }
+      }, 200);
+    } catch(e) { reject(e); }
+  });
+}
+
+/* ─ Icons ─────────────────────────────────────────────────── */
+const Icon = ({ name }) => {
+  const icons = {
+    qr: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm1 1h3v3H5V5zm8-2h7v7h-7V3zm1 1v5h5V4h-5zm1 1h3v3h-3V5zM3 13h7v7H3v-7zm1 1v5h5v-5H4zm1 1h3v3H5v-3zm8 0h2v2h-2v-2zm2 0h2v2h-2v-2zm2-2h2v2h-2v-2zm-4 4h2v2h-2v-2zm2 0h2v2h-2v-2zm2 0h2v2h-2v-2zm-4 2h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>,
+    link: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>,
+    text: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h12"/></svg>,
+    file: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
+    image: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+    zap: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    download: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+    copy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+    share: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+    refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>,
+    check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>,
+  };
+  const s = { width:'16px', height:'16px', display:'inline-block', verticalAlign:'middle', flexShrink:0 };
+  return <span style={s}>{icons[name] || null}</span>;
+};
+
+/* ─ Toast ──────────────────────────────────────────────────── */
+function ToastManager({ toasts, remove }) {
+  return (
+    <div className="toast-wrap">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast toast-${t.type}`} onClick={() => remove(t.id)}>
+          <span style={{fontSize:'15px'}}>{t.type==='success'?'✓':t.type==='error'?'✕':'ℹ'}</span>
+          <span>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─ Dropzone ───────────────────────────────────────────────── */
+function Dropzone({ onFile, accept, icon, label }) {
+  const [over, setOver] = useState(false);
+  const [picked, setPicked] = useState(null);
+  const ref = useRef();
+  const handle = f => { if (f) { setPicked(f); onFile(f); } };
+  return (
+    <div
+      className={`dropzone${over?' over':''}`}
+      onClick={() => ref.current.click()}
+      onDragOver={e => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={e => { e.preventDefault(); setOver(false); handle(e.dataTransfer.files[0]); }}
+    >
+      <input ref={ref} type="file" accept={accept} style={{display:'none'}} onChange={e => handle(e.target.files[0])} />
+      <div className="dropzone-icon">{icon}</div>
+      {picked
+        ? <div className="dropzone-file">✓ {picked.name} <span style={{color:'rgba(255,248,238,0.3)',fontWeight:400}}>({(picked.size/1024).toFixed(1)} KB)</span></div>
+        : <>
+            <div className="dropzone-main">{label}</div>
+            <div className="dropzone-sub">or drag & drop here</div>
+          </>
+      }
+    </div>
+  );
+}
+
+/* ─ Template Form ──────────────────────────────────────────── */
+function TemplateForm({ onGenerate }) {
+  const [tpl, setTpl] = useState('email');
+  const [f, setF] = useState({});
+  const set = (k, v) => setF(p => ({...p, [k]: v}));
+  const fi = (field, ph, type='text') => (
+    <input className="field" style={{marginBottom:'10px'}} type={type} placeholder={ph}
+      onChange={e => set(field, e.target.value)} />
+  );
+  const build = () => {
+    if (tpl==='email') return `mailto:${f.em||''}?subject=${encodeURIComponent(f.sub||'')}&body=${encodeURIComponent(f.bod||'')}`;
+    if (tpl==='wifi') return `WIFI:T:${f.sec||'WPA'};S:${f.ssid||''};P:${f.pw||''};;`;
+    return `BEGIN:VCARD\nVERSION:3.0\nFN:${f.nm||''}\nORG:${f.org||''}\nTEL:${f.tel||''}\nEMAIL:${f.vc_em||''}\nURL:${f.url||''}\nEND:VCARD`;
+  };
+  const tpls = [['email','📧','Email'],['wifi','📶','WiFi'],['vcard','👤','vCard']];
+  return (
+    <div>
+      <div style={{display:'flex',gap:'6px',marginBottom:'18px'}}>
+        {tpls.map(([id,ic,lb]) => (
+          <button key={id}
+            style={{flex:1,padding:'9px 6px',borderRadius:'9px',border:'1px solid rgba(255,170,0,0.2)',
+              background:tpl===id?'linear-gradient(135deg,rgba(255,107,0,0.3),rgba(255,170,0,0.2))':'rgba(0,0,0,0.2)',
+              color:tpl===id?'var(--o2)':'rgba(255,248,238,0.5)',fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}
+            onClick={() => setTpl(id)}>
+            {ic} {lb}
+          </button>
+        ))}
+      </div>
+      {tpl==='email' && <>{fi('em','Email address','email')}{fi('sub','Subject')}<textarea className="field" rows={3} placeholder="Message body" onChange={e=>set('bod',e.target.value)} style={{marginBottom:'10px'}} /></>}
+      {tpl==='wifi' && <>{fi('ssid','Network name (SSID)')}{fi('pw','Password','password')}<select className="field" style={{marginBottom:'10px'}} onChange={e=>set('sec',e.target.value)}><option value="WPA">WPA / WPA2</option><option value="WEP">WEP</option><option value="">None</option></select></>}
+      {tpl==='vcard' && <>{fi('nm','Full name')}{fi('org','Organization')}{fi('tel','Phone','tel')}{fi('vc_em','Email','email')}{fi('url','Website URL','url')}</>}
+      <button className="btn-primary" style={{width:'100%',marginTop:'4px'}} onClick={() => onGenerate(build(), `${tpl} template`, tpl.toUpperCase())}>
+        <span><Icon name="qr"/> Generate QR</span>
+      </button>
+    </div>
+  );
+}
+
+/* ─ QR Preview Panel ───────────────────────────────────────── */
+function QRPanel({ qrUrl, onPng, onSvg, onCopy, onShare, custom, setCustom, onRegen }) {
+  const logoRef = useRef();
+  const cRow = (label, child) => (
+    <div style={{marginBottom:'12px'}}>
+      <div className="field-label">{label}</div>
+      {child}
+    </div>
+  );
+  return qrUrl ? (
+    <div>
+      <div className="qr-wrapper" style={{marginBottom:'20px'}}>
+        <div className="qr-box" key={qrUrl}>
+          <img src={qrUrl} alt="QR Code"
+            style={{width:`${Math.min(custom.size,250)}px`,height:`${Math.min(custom.size,250)}px`,display:'block'}} />
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'18px'}}>
+        <button className="btn-primary btn-sm" onClick={onPng}><span><Icon name="download"/> PNG</span></button>
+        <button className="btn-ghost btn-sm" onClick={onSvg}><Icon name="download"/> SVG</button>
+        <button className="btn-ghost btn-sm" onClick={onCopy}><Icon name="copy"/> Copy Link</button>
+        <button className="btn-ghost btn-sm" onClick={onShare}><Icon name="share"/> Share</button>
+      </div>
+      <div className="divider"/>
+      <div className="slabel" style={{marginBottom:'14px'}}>Customise QR</div>
+      {cRow('QR Colour',
+        <div className="color-row">
+          <input type="color" value={custom.dark} onChange={e=>setCustom(p=>({...p,dark:e.target.value}))} />
+          <span style={{fontSize:'12px',color:'rgba(255,248,238,0.35)',fontFamily:'monospace'}}>{custom.dark}</span>
+        </div>
+      )}
+      {cRow('Background',
+        <div className="color-row">
+          <input type="color" value={custom.light} onChange={e=>setCustom(p=>({...p,light:e.target.value}))} />
+          <span style={{fontSize:'12px',color:'rgba(255,248,238,0.35)',fontFamily:'monospace'}}>{custom.light}</span>
+        </div>
+      )}
+      {cRow(`Size — ${custom.size}px`,
+        <input type="range" min="128" max="512" step="32" value={custom.size}
+          onChange={e=>setCustom(p=>({...p,size:+e.target.value}))} />
+      )}
+      {cRow('Logo (centre)',
+        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+          <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}}
+            onChange={e=>setCustom(p=>({...p,logo:e.target.files[0]}))} />
+          <button className="btn-ghost btn-sm" style={{fontSize:'12px'}} onClick={()=>logoRef.current.click()}>
+            {custom.logo ? `✓ ${custom.logo.name.slice(0,14)}…` : '+ Add Logo'}
+          </button>
+          {custom.logo && <button className="btn-ghost btn-sm" style={{padding:'7px 10px'}} onClick={()=>setCustom(p=>({...p,logo:null}))}>✕</button>}
+        </div>
+      )}
+      <button className="btn-primary" style={{width:'100%'}} onClick={onRegen}>
+        <span><Icon name="refresh"/> Apply & Regenerate</span>
+      </button>
+    </div>
+  ) : (
+    <div className="qr-empty">
+      <svg className="qr-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <path d="M14 14h2v2h-2zM16 14h2v2h-2zM18 12h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/>
+      </svg>
+      <span style={{fontSize:'14px'}}>Your QR will appear here</span>
+      <span style={{fontSize:'12px',color:'rgba(255,248,238,0.18)'}}>Generate one on the left</span>
+    </div>
+  );
+}
+
+/* ─ History ────────────────────────────────────────────────── */
+function History({ items, onLoad }) {
+  if (!items.length) return null;
+  const fmt = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return (
+    <section style={{padding:'0 24px 60px'}}>
+      <div style={{maxWidth:'900px',margin:'0 auto'}}>
+        <div className="card" style={{padding:'24px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'20px'}}>
+            <div>
+              <div className="slabel">Session History</div>
+              <h2 style={{fontSize:'1.35rem',marginTop:'5px',fontWeight:'500'}}>Recent QR Codes</h2>
+            </div>
+            <span style={{fontSize:'12px',color:'rgba(255,248,238,0.25)'}}>{items.length} / 10</span>
+          </div>
+          <div className="history-grid">
+            {items.map((it,i) => (
+              <div key={i} className="hist-item" onClick={()=>onLoad(it)} title="Click to reload">
+                <img className="hist-img" src={it.url} alt="QR" loading="lazy"/>
+                <div className="hist-label">{it.label}</div>
+                <div className="hist-type">{it.type} · {fmt(it.ts)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─ Main App ───────────────────────────────────────────────── */
+function App() {
+  const [tab, setTab] = useState('url');
+  const [url, setUrl] = useState('');
+  const [txt, setTxt] = useState('');
+  const [fileF, setFileF] = useState(null);
+  const [imgF, setImgF] = useState(null);
+  const [imgPreview, setImgPreview] = useState(null);
+  const [qrUrl, setQrUrl] = useState(null);
+  const [lastContent, setLastContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [custom, setCustom] = useState({ dark:'#1a1a1a', light:'#ffffff', size:256, logo:null });
+  const [history, setHistory] = useState(() => { try { return JSON.parse(localStorage.getItem('qzen_hist')||'[]'); } catch { return []; } });
+  const [toasts, setToasts] = useState([]);
+
+  const toast = (msg, type='success') => {
+    const id = Date.now();
+    setToasts(p => [...p, {id, msg: String(msg), type}]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3800);
+  };
+  const rmToast = id => setToasts(p => p.filter(t => t.id !== id));
+
+  const addHist = (url, label, type) => {
+    setHistory(prev => {
+      const next = [{url, label, type, ts:Date.now()}, ...prev].slice(0,10);
+      try { localStorage.setItem('qzen_hist', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const doGen = useCallback(async (content, label, type) => {
+    if (!content?.trim()) { toast('Please enter some content first', 'error'); return; }
+    setLoading(true);
+    try {
+      const dataUrl = await genQR(content, custom);
+      setQrUrl(dataUrl);
+      setLastContent(content);
+      addHist(dataUrl, label, type);
+      toast('QR code ready!', 'success');
+    } catch {
+      toast('QR generation failed — try again', 'error');
+    }
+    setLoading(false);
+  }, [custom]);
+
+  useEffect(() => {
+    if (imgF) setImgPreview(URL.createObjectURL(imgF));
+  }, [imgF]);
+
+  const handleGen = () => {
+    if (tab==='url') doGen(url, url.slice(0,35)||'URL', 'URL');
+    else if (tab==='text') doGen(txt, (txt.slice(0,35)||'Text')+'…', 'Text');
+    else if (tab==='file') {
+      if (!fileF) { toast('Please upload a file first', 'error'); return; }
+      const fakeUrl = `https://qzen.app/f/${Date.now()}-${encodeURIComponent(fileF.name)}`;
+      doGen(fakeUrl, fileF.name, 'File');
+      toast('Demo: real upload needs a backend server', 'info');
+    } else if (tab==='image') {
+      if (!imgF) { toast('Please upload an image first', 'error'); return; }
+      const fakeUrl = `https://qzen.app/img/${Date.now()}-${encodeURIComponent(imgF.name)}`;
+      doGen(fakeUrl, imgF.name, 'Image');
+    }
+  };
+
+  const handleRegen = async () => {
+    if (!lastContent) { toast('Generate a QR first', 'error'); return; }
+    setLoading(true);
+    try {
+      const dataUrl = await genQR(lastContent, custom);
+      setQrUrl(dataUrl);
+      toast('QR updated!', 'success');
+    } catch { toast('Regeneration failed', 'error'); }
+    setLoading(false);
+  };
+
+  const dlPng = () => {
+    if (!qrUrl) return;
+    const a = Object.assign(document.createElement('a'), {href:qrUrl, download:'qzen-code.png'});
+    a.click(); toast('PNG saved!');
+  };
+  const dlSvg = () => {
+    if (!qrUrl) return;
+    const s = custom.size;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><image href="${qrUrl}" width="${s}" height="${s}"/></svg>`;
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),
+      download:'qzen-code.svg'
+    });
+    a.click(); toast('SVG saved!');
+  };
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(lastContent); toast('Copied to clipboard!'); }
+    catch { toast('Copy failed', 'error'); }
+  };
+  const share = async () => {
+    if (!qrUrl) return;
+    if (navigator.share) {
+      try {
+        const blob = await (await fetch(qrUrl)).blob();
+        await navigator.share({ title:'My QR Code', text:'Made with QZen', files:[new File([blob],'qrcode.png',{type:'image/png'})] });
+      } catch(e) { if (!String(e).includes('abort')) toast('Share failed','error'); }
+    } else { toast('Share not supported on this browser','info'); }
+  };
+
+  const tabs = [
+    {id:'url',   icon:'🔗', label:'URL'},
+    {id:'text',  icon:'📝', label:'Text'},
+    {id:'file',  icon:'📁', label:'File'},
+    {id:'image', icon:'🖼',  label:'Image'},
+    {id:'template', icon:'⚡', label:'Templates'},
+  ];
+
+  const genBtn = tab !== 'template' && (
+    <button className="btn-primary" style={{width:'100%',marginTop:'4px'}} onClick={handleGen} disabled={loading}>
+      {loading
+        ? <><div className="spin" style={{width:'18px',height:'18px',borderWidth:'2px'}}></div><span>Generating…</span></>
+        : <span><Icon name="qr"/> Generate QR Code</span>
+      }
+    </button>
+  );
+
+  return (
+    <div style={{minHeight:'100vh'}}>
+
+      {/* NAV */}
+      <nav>
+        <div className="nav-logo">
+          <div className="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm1 1h3v3H5V5zm8-2h7v7h-7V3zm1 1v5h5V4h-5zm1 1h3v3h-3V5zM3 13h7v7H3v-7zm1 1v5h5v-5H4zm1 1h3v3H5v-3zm8 0h2v2h-2v-2zm2 0h2v2h-2v-2zm2-2h2v2h-2v-2zm-4 4h2v2h-2v-2zm2 0h2v2h-2v-2zm2 0h2v2h-2v-2zm-4 2h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>
+          </div>
+          <span className="nav-brand">QZen</span>
+        </div>
+        <span className="nav-tag">Scan the World You Create</span>
+      </nav>
+
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-deco hero-deco1"/>
+        <div className="hero-deco hero-deco2"/>
+        <div className="hero-deco hero-deco3"/>
+        <div className="hero-eyebrow">✦ Premium QR Code Platform</div>
+        <h1 className="hero-title">
+          Generate QR for<br/>
+          <em className="grad-text" style={{fontStyle:'italic'}}>Anything.</em>
+        </h1>
+        <p className="hero-sub">URLs · Text · Files · Images · vCards · WiFi · More</p>
+        <button className="btn-primary" style={{fontSize:'16px',padding:'15px 40px'}}
+          onClick={() => document.getElementById('gen').scrollIntoView({behavior:'smooth'})}>
+          <span>✦ Start Creating</span>
+        </button>
+      </section>
+
+      {/* GENERATOR */}
+      <section id="gen" style={{padding:'0 24px 60px'}}>
+        <div style={{maxWidth:'920px',margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:'32px'}} className="fu">
+            <div className="slabel">Generator</div>
+            <h2 style={{fontSize:'clamp(1.5rem,3vw,2rem)',marginTop:'6px',fontWeight:'500'}}>
+              Create Your QR Code
+            </h2>
+          </div>
+
+          <div className="gen-grid fu fu1">
+            {/* Left Panel */}
+            <div className="card" style={{padding:'22px'}}>
+              <div className="tab-bar" style={{marginBottom:'20px'}}>
+                {tabs.map(t => (
+                  <button key={t.id} className={`tab-btn${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>
+                    <span className="tab-icon">{t.icon}</span>
+                    <span className="tab-label">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {tab==='url' && (
+                <div>
+                  <label className="field-label">Website URL or link</label>
+                  <input className="field" placeholder="https://example.com" value={url}
+                    onChange={e=>setUrl(e.target.value)}
+                    onKeyDown={e=>e.key==='Enter'&&handleGen()}
+                    style={{marginBottom:'10px'}} />
+                  <div style={{fontSize:'11px',color:'rgba(255,248,238,0.25)',marginBottom:'16px'}}>
+                    Supports http, https, ftp, tel:, sms: and any URL scheme
+                  </div>
+                  {genBtn}
+                </div>
+              )}
+
+              {tab==='text' && (
+                <div>
+                  <label className="field-label">Plain text content</label>
+                  <textarea className="field" rows={5} placeholder="Type any message, note, or plain text…"
+                    value={txt} onChange={e=>setTxt(e.target.value)} style={{marginBottom:'8px'}} />
+                  <div style={{fontSize:'11px',color:'rgba(255,248,238,0.25)',marginBottom:'14px'}}>
+                    {txt.length} chars — QR supports up to ~2900 chars (lower quality with more text)
+                  </div>
+                  {genBtn}
+                </div>
+              )}
+
+              {tab==='file' && (
+                <div>
+                  <label className="field-label">Upload any file</label>
+                  <Dropzone onFile={setFileF} accept="*/*" icon="📁" label="Click or drop any file here" />
+                  <div style={{fontSize:'11px',color:'rgba(255,248,238,0.25)',margin:'10px 0 16px'}}>
+                    PDF, Video, Audio, ZIP, Doc, etc. — Production would host files via Cloudinary / S3
+                  </div>
+                  {genBtn}
+                </div>
+              )}
+
+              {tab==='image' && (
+                <div>
+                  <label className="field-label">Upload an image</label>
+                  <Dropzone onFile={setImgF} accept="image/*" icon="🖼️" label="Click or drop image here" />
+                  {imgPreview && (
+                    <div style={{marginTop:'12px',textAlign:'center'}}>
+                      <img src={imgPreview} alt="preview"
+                        style={{maxWidth:'100%',maxHeight:'130px',objectFit:'contain',borderRadius:'8px',border:'1px solid rgba(255,170,0,0.15)'}} />
+                    </div>
+                  )}
+                  <div style={{fontSize:'11px',color:'rgba(255,248,238,0.25)',margin:'10px 0 16px'}}>
+                    PNG, JPG, GIF, WebP, SVG — link would point to hosted image
+                  </div>
+                  {genBtn}
+                </div>
+              )}
+
+              {tab==='template' && (
+                <div>
+                  <label className="field-label">Quick templates</label>
+                  <TemplateForm onGenerate={(content, label, type) => doGen(content, label, type)} />
+                </div>
+              )}
+            </div>
+
+            {/* Right Panel */}
+            <div className="card" style={{padding:'22px'}}>
+              <div style={{marginBottom:'18px'}}>
+                <div className="slabel">Live Preview</div>
+                <h3 style={{fontSize:'1.1rem',marginTop:'5px',fontWeight:'500'}}>QR Code</h3>
+              </div>
+              <QRPanel
+                qrUrl={qrUrl}
+                onPng={dlPng} onSvg={dlSvg} onCopy={copyLink} onShare={share}
+                custom={custom} setCustom={setCustom} onRegen={handleRegen}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HISTORY */}
+      <History items={history} onLoad={it => { setQrUrl(it.url); setLastContent(''); toast('Loaded from history','info'); }} />
+
+      {/* FOOTER */}
+      <footer>
+        <div className="nav-brand" style={{marginBottom:'6px'}}>QZen</div>
+        <div style={{fontSize:'12px',color:'rgba(255,248,238,0.25)',letterSpacing:'1.5px',marginBottom:'16px',textTransform:'uppercase'}}>Scan the World You Create</div>
+        <div className="footer-links">
+          {['GitHub','Twitter','Product Hunt','Documentation','Contact'].map(l => (
+            <a key={l} href="#" className="footer-link">{l}</a>
+          ))}
+        </div>
+        <div style={{fontSize:'11px',color:'rgba(255,248,238,0.18)',marginTop:'10px'}}>
+          © {new Date().getFullYear()} QZen — Crafted with precision & orange fire
+        </div>
+      </footer>
+
+      <ToastManager toasts={toasts.map(t=>({...t,message:t.msg}))} remove={rmToast}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
